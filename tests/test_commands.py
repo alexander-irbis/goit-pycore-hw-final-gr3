@@ -28,7 +28,8 @@ def test_handle_echo_no_args() -> None:
 
 
 def test_handle_greet_with_name() -> None:
-    assert handle_greet("Alice") == "  Hello, Alice!"
+    result = handle_greet("Alice")
+    assert "Hello, Alice!" in result
 
 
 def test_handle_greet_without_name_raises() -> None:
@@ -37,7 +38,7 @@ def test_handle_greet_without_name_raises() -> None:
 
 
 def test_handle_quit_returns_farewell() -> None:
-    assert handle_quit() == "Good bye!"
+    assert "Good bye!" in handle_quit()
 
 
 def test_handle_help_lists_all_commands() -> None:

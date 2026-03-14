@@ -1,8 +1,15 @@
+import re
+
 from main import format_team, format_title, main
 
 
+def strip_ansi(text: str) -> str:
+    """Remove ANSI escape codes from text."""
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)
+
+
 def test_format_title_has_box_and_shadow() -> None:
-    result = format_title("Hello")
+    result = strip_ansi(format_title("Hello"))
     assert "╔" in result
     assert "║  Hello  ║" in result
     assert "╚" in result
@@ -10,7 +17,7 @@ def test_format_title_has_box_and_shadow() -> None:
 
 
 def test_format_team_lists_members() -> None:
-    result = format_team("Team X", ["Alice", "Bob"])
+    result = strip_ansi(format_team("Team X", ["Alice", "Bob"]))
     assert "Team X:" in result
     assert "● Alice" in result
     assert "● Bob" in result
@@ -110,7 +117,7 @@ def test_greet_without_name_shows_usage(monkeypatch, capsys) -> None:
 def test_greeting_includes_all_sections(monkeypatch, capsys) -> None:
     monkeypatch.setattr("builtins.input", lambda _: "quit")
     main()
-    output = capsys.readouterr().out
+    output = strip_ansi(capsys.readouterr().out)
     assert "Assistant Bot" in output
     assert "Team #3:" in output
     assert "● Olga Shadrunova" in output

@@ -1,6 +1,8 @@
 from collections.abc import Callable
 from typing import Any
 
+from cli import colors as c
+
 
 def command(help_text: str) -> Callable[[Callable], Callable]:
     """Decorator that wraps a function and sets help_text as the wrapper's docstring."""
@@ -18,9 +20,11 @@ def command(help_text: str) -> Callable[[Callable], Callable]:
 @command("Show available commands.")
 def handle_help(commands: dict[str, Callable]) -> str:
     """Format and return a help listing of all registered commands."""
-    lines = ["  Available commands:"]
+    lines = [f"  {c.HEADER}Available commands:{c.RESET}"]
     for name, handler in sorted(commands.items()):
-        lines.append(f"    {name:<15} {handler.__doc__}")
+        colored_name = f"{c.CMD_NAME}{name:<15}{c.RESET}"
+        colored_desc = f"{c.CMD_DESC}{handler.__doc__}{c.RESET}"
+        lines.append(f"    {colored_name} {colored_desc}")
     return "\n".join(lines)
 
 
@@ -36,13 +40,13 @@ def handle_greet(*args: str) -> str:
     """Greet the given person."""
     if not args:
         raise ValueError("name is required")
-    return f"  Hello, {args[0]}!"
+    return f"  {c.GREETING}Hello, {args[0]}!{c.RESET}"
 
 
 @command("Exit the assistant bot.")
 def handle_quit() -> str:
     """Return a farewell message."""
-    return "Good bye!"
+    return f"{c.FAREWELL}Good bye!{c.RESET}"
 
 
 def default_commands() -> dict[str, Callable]:
