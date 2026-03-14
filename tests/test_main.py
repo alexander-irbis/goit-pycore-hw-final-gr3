@@ -5,7 +5,7 @@ def test_quit_command(monkeypatch, capsys) -> None:
     monkeypatch.setattr("builtins.input", lambda _: "quit")
     main()
     output = capsys.readouterr().out
-    assert "Assistant Bot" in output
+    assert "Assistant Bot — Team #3" in output
     assert "Good bye!" in output
 
 
@@ -81,6 +81,6 @@ def test_greeting_includes_help_listing(monkeypatch, capsys) -> None:
     main()
     output = capsys.readouterr().out
     lines = output.split("\n")
-    assert lines[0] == "Assistant Bot"
+    assert lines[0] == "Assistant Bot — Team #3"
     assert "help" in output
     assert "quit" in output

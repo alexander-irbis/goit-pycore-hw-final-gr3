@@ -6,7 +6,8 @@ from cli.commands import default_commands, handle_help, handle_quit
 def main() -> None:
     commands = default_commands()
 
-    print("Assistant Bot")
+    print("Assistant Bot — Team #3")
+    print("Olga Shadrunova, Maks Kaniuka, Ivan Bochkarov, Oleksandr Semychenkov")
     print(handle_help(commands))
 
     while True:
