@@ -1,6 +1,6 @@
 """Декоратор для обробки помилок введення користувача у handler-функціях."""
 def input_error(func):
-   def inner(*args, **kwargs):
+    def inner(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except ValueError:

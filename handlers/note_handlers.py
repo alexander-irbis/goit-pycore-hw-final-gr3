@@ -1,8 +1,7 @@
 from decorators import input_error
 
-
 try:
-    from note_models import NoteBook, Note
+    from note_models import Note, NoteBook
 except ImportError:
     class Note:
         """Заглушка для класу Note."""
