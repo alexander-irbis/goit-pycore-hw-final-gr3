@@ -1,15 +1,34 @@
+from cli.colors import ColorScheme
 from cli.commands import command
-from cli.errors import UsageError
+from cli.errors import AlreadyExistsError, NotFoundError, UsageError
 from models.notebook import NoteBook
 
 
-def _format_note(note) -> str:
-    """Форматує одну нотатку для зручного відображення."""
-    return repr(note)
+def _format_notes_table(notes: list, colors: ColorScheme) -> str:
+    """Format a list of notes as an aligned table."""
+    rows = []
+    for note in notes:
+        tags = ", ".join(note.tags) if note.tags else ""
+        rows.append((note.title, note.text, tags))
+
+    headers = ("Title", "Text", "Tags")
+    widths = [len(h) for h in headers]
+    for row in rows:
+        for i, cell in enumerate(row):
+            widths[i] = max(widths[i], len(cell))
+
+    def fmt(cells: tuple[str, ...]) -> str:
+        return "  ".join(cell.ljust(widths[i]) for i, cell in enumerate(cells)).rstrip()
+
+    sep = f"{colors.TABLE_SEP}{'  '.join('─' * w for w in widths)}{colors.RESET}"
+    header_line = f"{colors.HEADER}{fmt(headers)}{colors.RESET}"
+    lines = [header_line, sep]
+    lines.extend(fmt(row) for row in rows)
+    return "\n".join(lines)
 
 
 @command("Add a note. Usage: add-note <title> <text...>")
-def handle_add_note(*args: str, notebook: NoteBook) -> str:
+def handle_add_note(*args: str, notebook: NoteBook, colors: ColorScheme) -> str:
     """
     Додає нову нотатку.
 
@@ -23,13 +42,12 @@ def handle_add_note(*args: str, notebook: NoteBook) -> str:
     text = " ".join(args[1:])
 
     if not notebook.add_note(title=title, text=text):
-        return f"Note '{title}' already exists."
-
-    return f"Note '{title}' added."
+        raise AlreadyExistsError(f"Note '{title}' already exists.")
+    return f"{colors.SUCCESS}Note '{title}' added.{colors.RESET}"
 
 
 @command("Delete a note by title. Usage: delete-note <title>")
-def handle_delete_note(*args: str, notebook: NoteBook) -> str:
+def handle_delete_note(*args: str, notebook: NoteBook, colors: ColorScheme) -> str:
     """
     Видаляє нотатку за назвою.
 
@@ -42,13 +60,12 @@ def handle_delete_note(*args: str, notebook: NoteBook) -> str:
     title = args[0]
 
     if not notebook.delete_note(title):
-        return f"Note '{title}' not found."
-
-    return f"Note '{title}' deleted."
+        raise NotFoundError(f"Note '{title}' not found.")
+    return f"{colors.SUCCESS}Note '{title}' deleted.{colors.RESET}"
 
 
 @command("Edit note text. Usage: edit-note <title> <new_text...>")
-def handle_edit_note(*args: str, notebook: NoteBook) -> str:
+def handle_edit_note(*args: str, notebook: NoteBook, colors: ColorScheme) -> str:
     """
     Редагує текст нотатки за її назвою.
 
@@ -62,13 +79,12 @@ def handle_edit_note(*args: str, notebook: NoteBook) -> str:
     new_text = " ".join(args[1:])
 
     if not notebook.edit_note(title=title, new_text=new_text):
-        return f"Note '{title}' not found."
-
-    return f"Note '{title}' updated."
+        raise NotFoundError(f"Note '{title}' not found.")
+    return f"{colors.SUCCESS}Note '{title}' updated.{colors.RESET}"
 
 
 @command("Rename a note. Usage: rename-note <title> <new_title>")
-def handle_rename_note(*args: str, notebook: NoteBook) -> str:
+def handle_rename_note(*args: str, notebook: NoteBook, colors: ColorScheme) -> str:
     """
     Змінює назву нотатки.
 
@@ -83,16 +99,16 @@ def handle_rename_note(*args: str, notebook: NoteBook) -> str:
 
     note = notebook.find_note_by_title(title)
     if note is None:
-        return f"Note '{title}' not found."
-
+        raise NotFoundError(f"Note '{title}' not found.")
     if not notebook.edit_note(title=title, new_title=new_title):
-        return f"Cannot rename note to '{new_title}'. It may already exist."
-
-    return f"Note '{title}' renamed to '{new_title}'."
+        raise AlreadyExistsError(
+            f"Cannot rename note to '{new_title}'. It may already exist."
+        )
+    return f"{colors.SUCCESS}Note '{title}' renamed to '{new_title}'.{colors.RESET}"
 
 
 @command("Add tags to a note. Usage: add-tags <title> <tag1> <tag2> ...")
-def handle_add_tags(*args: str, notebook: NoteBook) -> str:
+def handle_add_tags(*args: str, notebook: NoteBook, colors: ColorScheme) -> str:
     """
     Додає один або кілька тегів до нотатки.
 
@@ -107,18 +123,13 @@ def handle_add_tags(*args: str, notebook: NoteBook) -> str:
 
     note = notebook.find_note_by_title(title)
     if note is None:
-        return f"Note '{title}' not found."
-
-    try:
-        note.add_tags(" ".join(tags))
-    except ValueError as error:
-        return str(error)
-
-    return f"Tags added to note '{title}'."
+        raise NotFoundError(f"Note '{title}' not found.")
+    note.add_tags(" ".join(tags))
+    return f"{colors.SUCCESS}Tags added to note '{title}'.{colors.RESET}"
 
 
 @command("Remove a tag from a note. Usage: remove-tag <title> <tag>")
-def handle_remove_tag(*args: str, notebook: NoteBook) -> str:
+def handle_remove_tag(*args: str, notebook: NoteBook, colors: ColorScheme) -> str:
     """
     Видаляє один тег із нотатки.
 
@@ -133,16 +144,14 @@ def handle_remove_tag(*args: str, notebook: NoteBook) -> str:
 
     note = notebook.find_note_by_title(title)
     if note is None:
-        return f"Note '{title}' not found."
-
+        raise NotFoundError(f"Note '{title}' not found.")
     if not note.remove_tag(tag):
-        return f"Tag '{tag}' not found in note '{title}'."
-
-    return f"Tag '{tag}' removed from note '{title}'."
+        raise NotFoundError(f"Tag '{tag}' not found in note '{title}'.")
+    return f"{colors.SUCCESS}Tag '{tag}' removed from note '{title}'.{colors.RESET}"
 
 
 @command("Search notes. Usage: search-notes <keyword>")
-def handle_search_notes(*args: str, notebook: NoteBook) -> str:
+def handle_search_notes(*args: str, notebook: NoteBook, colors: ColorScheme) -> str:
     """
     Шукає нотатки за ключовим словом у назві, тексті або тегах.
 
@@ -156,14 +165,12 @@ def handle_search_notes(*args: str, notebook: NoteBook) -> str:
     results = notebook.search(keyword)
 
     if not results:
-        return "No notes found."
-
-    lines = [f"  {i}. {_format_note(note)}" for i, note in enumerate(results, 1)]
-    return "\n".join(lines)
+        return f"{colors.SUCCESS}No notes found.{colors.RESET}"
+    return _format_notes_table(results, colors)
 
 
 @command("Show all notes.")
-def handle_show_all_notes(*args: str, notebook: NoteBook) -> str:
+def handle_show_all_notes(*args: str, notebook: NoteBook, colors: ColorScheme) -> str:
     """
     Показує всі нотатки.
     """
@@ -171,7 +178,5 @@ def handle_show_all_notes(*args: str, notebook: NoteBook) -> str:
         raise UsageError("no arguments expected")
 
     if len(notebook) == 0:
-        return "No notes saved."
-
-    lines = [f"  {i}. {_format_note(note)}" for i, note in enumerate(notebook.notes, 1)]
-    return "\n".join(lines)
+        return f"{colors.SUCCESS}No notes saved.{colors.RESET}"
+    return _format_notes_table(notebook.notes, colors)
